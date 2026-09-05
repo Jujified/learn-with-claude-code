@@ -1,4 +1,4 @@
-# learn-claude-code
+# learn-with-claude-code
 
 A one-on-one AI tutor that refuses to let you memorise things.
 
@@ -33,8 +33,8 @@ And one process, run in order, every time:
 ## Quick start
 
 ```bash
-git clone https://github.com/metetik/learn-claude-code.git
-cd learn-claude-code
+git clone https://github.com/metetik/learn-with-claude-code.git
+cd learn-with-claude-code
 claude
 ```
 
