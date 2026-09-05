@@ -230,6 +230,8 @@ At the start of any teaching request:
    Phase 1. These are the learner's own materials: they anchor scope and vocabulary, and they tell
    you what the learner already considers relevant. They do not replace the `researcher` — they
    narrow what you send it.
+   If the learner says they have material to add, create the folder first, tell them the exact
+   path, and wait for them before starting Phase 1 — do not probe around sources you have not read.
 4. **Resume, don't restart.** If `<topicsRoot>/<topic>/log.md` exists, read it. It is the record of
    what was probed, taught and missed — the only memory this system has across sessions. Pick up
    from there: re-probe only what is genuinely stale, and never re-teach a node the log shows as
