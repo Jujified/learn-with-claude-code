@@ -16,3 +16,9 @@ __pycache__/
 # Runtime state
 .memory/
 *.log
+
+# Local config + log state (created from .claude/learn.example.json on first run)
+.claude/learn.json
+
+# Learning material and session logs stay on the learner's machine
+topics/
