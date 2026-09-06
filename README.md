@@ -3,8 +3,8 @@
 A one-on-one AI tutor that refuses to let you memorise things.
 
 This is a Claude Code port of [amosblomqvist/learn](https://github.com/amosblomqvist/learn)
-([video](https://youtu.be/kzcI5F4tGiU)), which was built for
-[pi](https://github.com/pi-labs-ai/pi) with custom extensions. The teaching philosophy is his; this
+by [Eero Alvar](https://github.com/amosblomqvist) ([video](https://youtu.be/kzcI5F4tGiU)), built for
+[pi](https://github.com/pi-labs-ai/pi) with custom extensions. The teaching philosophy is theirs; this
 repository rebuilds it on Claude Code's own mechanisms — skills, subagents and hooks — so it runs
 anywhere Claude Code runs, with no extra runtime.
 
@@ -132,6 +132,7 @@ under-specified rather than wrong:
 ## Credit
 
 The system, the philosophy and the original implementation are
-[Amos Blomqvist's](https://github.com/amosblomqvist/learn). This fork ports it to a different
+[Eero Alvar's](https://github.com/amosblomqvist) — see
+[amosblomqvist/learn](https://github.com/amosblomqvist/learn). This fork ports it to a different
 runtime and adds the two rules above. The upstream repository carries no licence file; treat it as
 all rights reserved and check with the author before redistributing.
