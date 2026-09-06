@@ -4,7 +4,7 @@ A one-on-one AI tutor that refuses to let you memorise things.
 
 This is a Claude Code port of [amosblomqvist/learn](https://github.com/amosblomqvist/learn)
 by [Eero Alvar](https://github.com/amosblomqvist) ([video](https://youtu.be/kzcI5F4tGiU)), built for
-[pi](https://github.com/pi-labs-ai/pi) with custom extensions. The teaching philosophy is theirs; this
+[pi](https://github.com/pi-labs-ai/pi) with custom extensions. The teaching philosophy is his; this
 repository rebuilds it on Claude Code's own mechanisms — skills, subagents and hooks — so it runs
 anywhere Claude Code runs, with no extra runtime.
 
