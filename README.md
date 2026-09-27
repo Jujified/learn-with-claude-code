@@ -1,12 +1,19 @@
 # learn-with-claude-code
 
-A one-on-one AI tutor that refuses to let you memorise things.
+A one-on-one AI tutor that refuses to let you memorise things, built to be read in Obsidian.
 
-This is a Claude Code port of [amosblomqvist/learn](https://github.com/amosblomqvist/learn)
-by [Eero Alvar](https://github.com/amosblomqvist) ([video](https://youtu.be/kzcI5F4tGiU)), built for
-[pi](https://github.com/pi-labs-ai/pi) with custom extensions. The teaching philosophy is his; this
-repository rebuilds it on Claude Code's own mechanisms — skills, subagents and hooks — so it runs
-anywhere Claude Code runs, with no extra runtime.
+The teaching system is [amosblomqvist/learn](https://github.com/amosblomqvist/learn) by
+[Eero Alvar](https://github.com/amosblomqvist) ([video](https://youtu.be/kzcI5F4tGiU)), written for
+[pi](https://github.com/pi-labs-ai/pi). [metetik/learn-with-claude-code](https://github.com/metetik/learn-with-claude-code)
+ported it to Claude Code's skills, subagents and hooks. This fork of that port changes two things:
+
+- **You read every question in Obsidian before you answer it.** The terminal can't render LaTeX, so
+  the lesson and the open question are written to your vault while the terminal waits for you,
+  not after you reply. See [Reading in Obsidian](#reading-in-obsidian).
+- **The tutor writes plainly.** Its messages follow rules adapted from Peter Yang's
+  [no-ai-slop](https://github.com/petergyang/no-ai-slop): no praise in grading, no "here's the key
+  insight", no "it's not X, it's Y", no closing one-liners, no emoji. See
+  [Writing rules](#writing-rules).
 
 ## The idea
 
@@ -33,7 +40,7 @@ And one process, run in order, every time:
 ## Quick start
 
 ```bash
-git clone https://github.com/metetik/learn-with-claude-code.git
+git clone https://github.com/Jujified/learn-with-claude-code.git
 cd learn-with-claude-code
 claude
 ```
@@ -45,8 +52,9 @@ Then tell it what you want to learn:
 ```
 
 On the first run it creates `.claude/learn.json` from the template and asks two questions: what
-language to teach you in, and where to keep topic folders (a folder inside your Obsidian vault, or
-the default `topics/` inside the project). After that it goes straight into the probe.
+language to teach you in, and where to keep topic folders. Give it an absolute path to a folder
+inside your Obsidian vault (for example `/Users/you/Vault/Learning`); the default is `topics/`
+inside the project. After that it goes straight into the probe.
 
 Each topic gets its own folder:
 
@@ -58,20 +66,59 @@ topics/<topic-slug>/
   viz/         ← generated diagrams
 ```
 
-Both files update while the tutor is waiting for your answer, not after it: the log hook runs
-just before every quiz question appears in the terminal, and again at the end of every turn. Keep
-`current.md` open in Obsidian next to the terminal: read the question there with the math rendered,
-answer in the terminal.
+`log.md` is also the system's memory. Start a new session on the same topic and the tutor reads
+the log, picks up where you stopped, and does not re-teach what is already closed.
 
-`log.md` is also the system's memory: start a new session on the same topic and it reads the log,
-picks up where you stopped, and does not re-teach what is already closed.
+## Reading in Obsidian
+
+Put Obsidian and the terminal side by side, with `<topic>/current.md` open in Obsidian. Each
+round goes like this:
+
+1. The tutor writes a step and asks a quiz question.
+2. Before the question shows up in the terminal, the log hook writes the step and the question to
+   `current.md` and `log.md`. Obsidian reloads the note, so you read the question with the math
+   rendered.
+3. You pick an option in the terminal.
+4. The tutor grades it in its next message. `current.md` restarts with the question you just
+   answered, your answer, and the grading, followed by the next question.
+
+`current.md` stays short: your last message or answer and everything the tutor has said since.
+`log.md` keeps the whole session. Obsidian doesn't scroll a note when it changes on disk, which is
+why the short note exists.
+
+The hook (`.claude/hooks/md-log.mjs`) runs at two points: as a `PreToolUse` hook on
+`AskUserQuestion`, which is the moment a quiz question is about to appear, and as a `Stop` hook at
+the end of every turn, which catches replies that end without a quiz. Both are registered in
+`.claude/settings.json`. The skill tells the tutor to write each step's text before the question,
+because anything written after the question only reaches the vault once you've answered.
+
+## Writing rules
+
+The `teach` skill ends with a section called *Writing: no AI slop*, adapted from
+[petergyang/no-ai-slop](https://github.com/petergyang/no-ai-slop) (MIT). That project edits drafts
+you hand it; here the rules apply to the tutor's own messages. They cover:
+
+- **Grading:** the verdict and the correct option first, then one or two sentences on why. No
+  "great", "exactly", "spot on", no reassurance, no exclamation marks.
+- **Banned words and phrases:** delve, leverage, robust, crucial, "let's dive in", "here's the
+  key", "it's worth noting", empty adverbs like "simply" and "obviously", and the rest of the
+  upstream list.
+- **Banned patterns:** "it's not X, it's Y", colon reveals ("The trick: divide by $x$"),
+  rhetorical questions the tutor answers itself, lines telling you what matters, closing
+  aphorisms, recap paragraphs, emoji, decorative bold.
+- **One term per concept:** once a word is introduced it is reused, so you never wonder whether
+  "the derivative" and "the slope function" are two different things.
+
+The tutor runs a six-question check against these rules before sending each message. The rules
+apply in whatever language you're taught in.
 
 ## Requirements
 
 - [Claude Code](https://claude.com/claude-code)
 - Node.js — for the log hook and the SVG rasteriser (no npm dependencies)
 - Chrome or Edge, optional — only for rendering geometric SVG diagrams
-- Obsidian, optional — point `topicsRoot` at your vault and lessons land there, fully rendered
+- Obsidian, recommended. Point `topicsRoot` at a folder in your vault and lessons land there,
+  fully rendered. Any Markdown reader that reloads changed files works too
 
 ## What's in the box
 
@@ -82,8 +129,8 @@ picks up where you stopped, and does not re-teach what is already closed.
 | Fact-checking subagent | `.claude/agents/researcher.md` | `agents/researcher.md` |
 | Geometric diagram subagent | `.claude/agents/svg-maker.md` | `agents/svg-maker.md` |
 | SVG → PNG rasteriser | `.claude/tools/render-svg.mjs` | `extensions/visual-tools/` |
-| Session → Markdown log | `.claude/hooks/md-log.mjs` (`PreToolUse` on `AskUserQuestion` + `Stop`) | `extensions/md-log.ts` |
-| Writing rules (no AI slop) | *Writing: no AI slop* in `.claude/skills/teach/SKILL.md` | none; adapted from [petergyang/no-ai-slop](https://github.com/petergyang/no-ai-slop) |
+| Session → Markdown log and `current.md` | `.claude/hooks/md-log.mjs`, wired in `.claude/settings.json` | `extensions/md-log.ts` |
+| Writing rules | *Writing: no AI slop* in `.claude/skills/teach/SKILL.md` | none (adapted from [no-ai-slop](https://github.com/petergyang/no-ai-slop)) |
 | Local config and state | `.claude/learn.json` (git-ignored) | `/md-log` command |
 | Graded quiz | `AskUserQuestion` + the quiz protocol in the `teach` skill | `extensions/quiz.ts` |
 | Mermaid diagrams | Fenced ` ```mermaid ` blocks (Obsidian renders them natively) | `agents/mermaid-maker.md` |
@@ -102,10 +149,10 @@ commit. It is created from `.claude/learn.example.json` on first run.
 | `sessions` | Managed automatically — how much of each transcript has been mirrored. Don't edit |
 | `pendingAsks` | Managed automatically — quiz questions already logged whose answers haven't arrived. Don't edit |
 
-## What this port adds
+## Teaching rules added on top of the original
 
-Three rules that are not in the original. The first two were added because the evidence says the
-original is under-specified rather than wrong:
+Two rules added in the Claude Code port, because the evidence says the original is under-specified
+rather than wrong:
 
 - **The learner has to do the deriving.** The measured gains belong to the *learner* explaining,
   predicting and deriving (self-explanation g≈0.55, generation effect d≈0.40, productive failure
@@ -119,17 +166,16 @@ original is under-specified rather than wrong:
   the answer at position 1 every single time. A learner spots that within three or four questions,
   and from then on position leaks the answer and the measurement is dead. This was found by a
   learner using this port, not by the model.
-- **No AI slop.** The tutor's prose follows writing rules adapted from Peter Yang's
-  [no-ai-slop](https://github.com/petergyang/no-ai-slop) (MIT): no praise or consolation in grading,
-  no "here's the key insight" setups, no "it's not X, it's Y", no colon reveals, no closing
-  aphorisms, no emoji, one term per concept. The skill has the full list and a check the tutor runs
-  before every message.
+
+This fork adds the [writing rules](#writing-rules) as a third.
 
 ## Differences from the pi original
 
 **Given up:**
 
 - Quiz feedback arrives in the next message rather than instantly inside the popup.
+- The quiz is answered in the terminal, which can't render math. Reading the question in
+  `current.md` works around this.
 - `AskUserQuestion` allows at most 4 options, and free text typed into its "Other" field never
   reaches the model. So "I don't know" is written as an explicit 4th option, leaving 3 real ones.
 - Mermaid diagrams are not rendered and visually checked; Obsidian renders them directly. Geometric
@@ -144,9 +190,11 @@ original is under-specified rather than wrong:
 
 ## Credit
 
-The system, the philosophy and the original implementation are
-[Eero Alvar's](https://github.com/amosblomqvist) — see
-[amosblomqvist/learn](https://github.com/amosblomqvist/learn). This fork ports it to a different
-runtime and adds the rules above. The writing rules are adapted from
-[petergyang/no-ai-slop](https://github.com/petergyang/no-ai-slop) by Peter Yang, MIT licensed. The upstream repository carries no licence file; treat it as
-all rights reserved and check with the author before redistributing.
+- The system, the philosophy and the original implementation are
+  [Eero Alvar's](https://github.com/amosblomqvist):
+  [amosblomqvist/learn](https://github.com/amosblomqvist/learn). That repository carries no licence
+  file; treat it as all rights reserved and check with the author before redistributing.
+- The Claude Code port and the two added teaching rules are from
+  [metetik/learn-with-claude-code](https://github.com/metetik/learn-with-claude-code).
+- The writing rules are adapted from [petergyang/no-ai-slop](https://github.com/petergyang/no-ai-slop)
+  by Peter Yang, MIT licensed.
