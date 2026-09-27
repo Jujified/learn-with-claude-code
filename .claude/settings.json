@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/md-log.mjs\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
