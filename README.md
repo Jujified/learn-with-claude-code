@@ -74,23 +74,42 @@ the log, picks up where you stopped, and does not re-teach what is already close
 Put Obsidian and the terminal side by side, with `<topic>/current.md` open in Obsidian. Each
 round goes like this:
 
-1. The tutor writes a step and asks a quiz question.
-2. Before the question shows up in the terminal, the log hook writes the step and the question to
-   `current.md` and `log.md`. Obsidian reloads the note, so you read the question with the math
-   rendered.
-3. You pick an option in the terminal.
-4. The tutor grades it in its next message. `current.md` restarts with the question you just
-   answered, your answer, and the grading, followed by the next question.
+1. The tutor writes a step. The response ends there, with a hidden `<!-- quiz -->` line.
+2. The log hook saves the step to `current.md` and `log.md`, then tells the tutor to ask the
+   quiz. You don't type anything in between.
+3. The tutor asks the question. Before it shows up in the terminal, the hook adds it to both
+   files. Obsidian reloads the note, so you read the step and the question with the math rendered.
+4. You pick an option in the terminal.
+5. The tutor grades it and writes the next step in one response. `current.md` restarts with the
+   question you just answered, your answer, the grading and the next step.
 
 `current.md` stays short: your last message or answer and everything the tutor has said since.
 `log.md` keeps the whole session. Obsidian doesn't scroll a note when it changes on disk, which is
 why the short note exists.
 
-The hook (`.claude/hooks/md-log.mjs`) runs at two points: as a `PreToolUse` hook on
-`AskUserQuestion`, which is the moment a quiz question is about to appear, and as a `Stop` hook at
-the end of every turn, which catches replies that end without a quiz. Both are registered in
-`.claude/settings.json`. The skill tells the tutor to write each step's text before the question,
-because anything written after the question only reaches the vault once you've answered.
+### Why a step is split in two
+
+The hook reads the session transcript that Claude Code writes to
+`~/.claude/projects/<project>/<session>.jsonl`. Text the tutor writes **before a tool call in the
+same response** is sometimes stored there as a `thinking` block holding a one-line summary instead
+of a `text` block, so the full text never reaches the transcript and can't be logged. In one
+session that removed the explanation from four quiz steps in a row. Text that **ends** a response
+is stored reliably. So the teach skill has the tutor put learner-facing text last in every
+response, and split a quiz step into a lesson response and a quiz response.
+
+The hook (`.claude/hooks/md-log.mjs`, registered in `.claude/settings.json`) does three things:
+
+- **`Stop`**, every time the tutor finishes a response: logs what's new. If the response ended
+  with `<!-- quiz -->`, it blocks the stop and tells the tutor to ask the quiz now, which saves you
+  a round trip. It does this at most twice in a row without a quiz being asked, so it can't loop.
+- **`PreToolUse` on `AskUserQuestion`**, just before a question appears: logs the question.
+- **Safety net.** If that same response also contains a non-empty `thinking` block (the sign of
+  lost text), the hook rejects the question once and tells the tutor to resend the explanation. If
+  it happens again before you reply, the question goes through with a warning callout in the note
+  so you know to ask for the step again.
+
+If nothing shows up in the vault at all, check that `.claude/learn.json` exists and has `topic`
+set. Without both, the hook does nothing.
 
 ## Writing rules
 
@@ -147,7 +166,7 @@ commit. It is created from `.claude/learn.example.json` on first run.
 | `topic` | The active topic slug. Changing topics is a question the tutor asks, not a silent switch |
 | `labels` | Headings used inside `log.md`, so the log reads naturally in your language |
 | `sessions` | Managed automatically — how much of each transcript has been mirrored. Don't edit |
-| `pendingAsks` | Managed automatically — quiz questions already logged whose answers haven't arrived. Don't edit |
+| `pendingAsks`, `deniedAsks`, `quizFlow` | Managed automatically by the log hook: open questions, rejected quiz calls, and the lesson-to-quiz handoff. Don't edit |
 
 ## Teaching rules added on top of the original
 

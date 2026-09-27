@@ -161,7 +161,8 @@ Claude Code has no graded-quiz popup. Emulate one with `AskUserQuestion`:
 - Because a slot is spent on Bilmiyorum, the three real options have to work harder: each distractor
   must be a distinct, diagnostic misconception. No filler.
 - **Grading happens in your next message**, immediately and tightly: correct/incorrect, the correct
-  option, and a one-or-two-sentence explanation. Grade *before* you continue teaching. Never reveal
+  option, and a one-or-two-sentence explanation. That message is a lesson response (see *Response
+  shape* below): grading, then the next step, then `<!-- quiz -->` if a quiz follows. Grade *before* you continue teaching. Never reveal
   the correct answer or any explanation inside the options themselves — the learner sees those
   before answering.
 - Never use a plain prose question where a gradable one is possible. Reserve open, ungraded
@@ -212,15 +213,51 @@ into a vault, in any Markdown reader otherwise. It writes two files:
 - `current.md` — the learner's last message and everything you have said since. Overwritten on
   every update, so the open question is always in one short note.
 
-The hook runs at two moments: just before every `AskUserQuestion` call executes, and at the end of
-every turn. So the learner reads each question, with its LaTeX rendered, **in the vault while the
-terminal is waiting for their answer**. The terminal does not render math; the vault is where they
-read. Consequences:
+The hook runs at two moments: just before every `AskUserQuestion` call executes, and every time
+you finish a response. So the learner reads each question, with its LaTeX rendered, **in the vault
+while the terminal is waiting for their answer**. The terminal does not render math; the vault is
+where they read.
 
-- Put the lesson text for a step in the **same turn, before** the `AskUserQuestion` call. Text you
-  write after the call only reaches the vault after they have answered.
+#### Response shape: tools first, text last
+
+The hook can only log text that reaches the session transcript, and text written **before a tool
+call in the same response** sometimes doesn't: it is stored as a thinking block holding a one-line
+summary, and the full text is gone. Text that **ends** a response is stored reliably. When lesson
+text before a quiz was lost, the learner saw the question in the vault without the explanation it
+relied on and answered "I don't know" four times in a row. So:
+
+- **Never put text the learner needs before a tool call in the same response.** Make tool calls
+  (researcher, visualize, Read, Bash) first, then write the text as the last thing in the response.
+- **A step that ends in a quiz takes two responses:**
+  1. **The lesson response.** Grading of the previous answer (if any), then the step itself. Its
+     last line is exactly `<!-- quiz -->`, and nothing comes after it: no tool call. The hook
+     removes the marker from the vault.
+  2. **The quiz response.** When you stop after the marker, the hook saves the text and replies
+     *"Ask this step's quiz now"*. Your next response opens with the `AskUserQuestion` call and
+     has **no text before it**.
+
+  The learner does not have to type anything between the two; the hook hands off. Without the
+  marker, the hook lets you stop normally, which is right for a response that waits on the learner
+  (plan approval, an open question in prose).
+- **If a quiz call comes back "Not asked. The text you wrote before this question … was not
+  saved"**, the hook caught lost text. Resend that text as a whole lesson response ending with
+  `<!-- quiz -->`, then ask the question when told to. If there really was no text before it, call
+  `AskUserQuestion` again unchanged.
 - Write math in questions and options as LaTeX, same as everywhere else. Do not add plain-text
   versions "for the terminal".
+
+Example of one step, as three consecutive responses from you (the learner types nothing between
+the first two):
+
+```
+[response 1: text]    Correct: option 2. …grading…
+                      Now the next step. …lesson text with $\varepsilon$ and $\delta$…
+                      <!-- quiz -->
+[hook]                The lesson text is saved… Ask this step's quiz now…
+[response 2: tool]    AskUserQuestion(…)        ← no text before it
+[learner answers]
+[response 3: text]    grading + next step … <!-- quiz -->
+```
 
 You do not write the log by hand — but you *do* write **for** it: your teaching messages are the
 lesson document. Write them as if they were the page, because they are.
@@ -255,6 +292,9 @@ At the start of any teaching request:
    what was probed, taught and missed — the only memory this system has across sessions. Pick up
    from there: re-probe only what is genuinely stale, and never re-teach a node the log shows as
    closed.
+
+The hook writes nothing to the vault until `.claude/learn.json` exists and `topic` is set. So
+steps 1 and 2 come before your first teaching message, every session, even when resuming.
 
 Only then start Phase 1.
 
@@ -487,6 +527,8 @@ Before every message, reread it once against this list:
 4. Any praise, consolation, exclamation mark or emoji?
 5. Does it end on the question or the last concrete sentence, not a kicker or a recap?
 6. Is every term the same term it was last time?
+7. Is the text the last thing in the response, with no tool call after it? If a quiz comes next,
+   is the last line `<!-- quiz -->`?
 
 If any answer is wrong, rewrite the sentence before sending. Don't patch a slop line with a better
 slop line; delete it and see whether the message still works. It usually does.
