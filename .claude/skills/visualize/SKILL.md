@@ -63,6 +63,10 @@ it in your teaching message with Obsidian's wikilink embed:
 Use the returned **filename**, not the full path — Obsidian resolves embeds by filename anywhere in
 the vault. Width `|500` is a good default; larger for dense figures.
 
+Call `svg-maker` with no lesson text before the call, then write the step with the embed after it
+returns. Text written before a tool call can fail to reach the log (see *Response shape* in the
+`teach` skill).
+
 If it returns `RESULT: NONE`, it couldn't make a correct picture of the brief — simplify, rethink,
 or decide the visual isn't worth it. Never hand-author a geometric figure yourself and pass it off
 as verified; correctness there depends on the render-and-inspect loop.
